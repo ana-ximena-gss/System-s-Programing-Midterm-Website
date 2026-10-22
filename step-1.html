@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Step 1 poster: understand the memory page-size problem.">
+    <title>Step 1 — Understand the Problem | Memory Page Size Investigation</title>
+    <link rel="stylesheet" href="site.css">
+    <style>
+        .poster-view {
+            width: min(100%, 1000px);
+            margin: 34px auto 0;
+        }
+
+        .poster-open {
+            margin: 0 0 12px;
+            text-align: right;
+            font-size: 14px;
+        }
+
+        .poster-image {
+            display: block;
+            width: 100%;
+            height: auto;
+            border: 1px solid var(--site-line);
+            background: var(--site-paper);
+        }
+
+        .poster-caption {
+            margin-top: 10px;
+            color: var(--site-muted);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .poster-view {
+                margin-top: 26px;
+            }
+
+            .poster-open {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="top site-top">
+        <span>SYSTEMS PROGRAMMING · INVESTIGATION NOTES</span>
+        <span>STEP 1 — UNDERSTAND THE PROBLEM</span>
+    </header>
+    <nav class="site-nav" aria-label="Midterm pages">
+        <a href="index.html">Overview</a>
+        <a href="step-1.html" aria-current="page">Step 1</a>
+        <a href="memory-page-investigation.html">Step 2</a>
+        <a href="step-3.html">Steps 3 &amp; 4</a>
+    </nav>
+
+    <main class="step-main">
+        <section class="step-hero" aria-labelledby="page-title">
+            <p class="site-eyebrow">Step 1 · Understand</p>
+            <h1 id="page-title">Step 1 — Understand the Problem</h1>
+            <p class="step-purpose">This poster introduces the workload, page-allocation rules, and scoring trade-offs that frame the investigation.</p>
+        </section>
+
+        <figure class="poster-view">
+            <p class="poster-open"><a href="assets/step-1-poster.png" target="_blank" rel="noopener">Open full-size poster</a></p>
+            <img class="poster-image" src="assets/step-1-poster.png" alt="Portrait poster titled “How Big Should a Memory Page Be?” It explains the goal of choosing one page size, shows the workloads folder with 32 day folders and sample loads values 32294, 4302, and 13965, illustrates 23-bit allocation with 2-bit and 20-bit pages and separate 64-bit bookkeeping records, and presents the program, daily, and overall scoring formulas, trade-off, rules, and open questions.">
+            <figcaption class="poster-caption">Original Step 1 poster: the problem setup and questions to investigate.</figcaption>
+        </figure>
+
+        <nav class="step-footer" aria-label="Step navigation">
+            <a href="index.html">← Midterm overview</a>
+            <a href="memory-page-investigation.html">Step 2: Engage →</a>
+        </nav>
+    </main>
+</body>
+
+</html>

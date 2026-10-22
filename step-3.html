@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Steps 3 and 4: compare approaches with Angela Padilla and Manauri Rodriguez, reflect on what I learned, and identify habits to carry forward.">
+    <title>Steps 3 &amp; 4 — Peer Exchange and Reflection | Memory Page Size Investigation</title>
+    <link rel="stylesheet" href="site.css">
+    <style>
+        .step-main {
+            width: min(100% - 44px, 1420px);
+        }
+
+        .step-layout {
+            display: grid;
+            grid-template-columns: 190px minmax(0, 1fr);
+            align-items: start;
+            gap: 38px;
+        }
+
+        .page-sidebar {
+            position: sticky;
+            top: 18px;
+            align-self: start;
+            max-height: calc(100vh - 36px);
+            overflow-y: auto;
+            padding: 12px 0;
+        }
+
+        .page-sidebar-title {
+            margin: 0 0 10px 10px;
+            color: var(--site-muted);
+            font-size: 11px;
+            font-weight: 750;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+
+        .page-sidebar nav {
+            display: grid;
+            gap: 2px;
+        }
+
+        .page-sidebar a {
+            display: block;
+            padding: 8px 10px;
+            border-left: 2px solid transparent;
+            color: var(--site-muted);
+            font-size: 13px;
+            line-height: 1.4;
+            text-decoration: none;
+        }
+
+        .page-sidebar a:hover,
+        .page-sidebar a[aria-current="location"] {
+            border-left-color: var(--site-teal);
+            background: var(--site-teal-soft);
+            color: var(--site-ink);
+        }
+
+        .page-content {
+            min-width: 0;
+        }
+
+        .step-hero h1 {
+            max-width: 24ch;
+            font-size: 3.4rem;
+        }
+
+        .share-section h2 {
+            scroll-margin-top: 100px;
+        }
+
+        .reflection-note {
+            max-width: 82ch;
+            margin: 18px 0 0;
+            padding-left: 15px;
+            border-left: 2px solid var(--site-teal);
+        }
+
+        .reflection-note strong {
+            color: var(--site-ink);
+        }
+
+        .share-section {
+            padding: 39px 0;
+            border-bottom: 1px solid var(--site-line);
+        }
+
+        .share-section h2 {
+            margin: 0 0 12px;
+            color: var(--site-ink);
+            font: 400 30px/1.25 var(--site-serif);
+        }
+
+        .section-lead {
+            max-width: 76ch;
+            margin-bottom: 21px;
+        }
+
+        .issue-label {
+            display: block;
+            margin-bottom: 7px;
+            color: var(--site-teal);
+            font-size: 11px;
+            font-weight: 750;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 13px;
+        }
+
+        .perspective {
+            min-width: 0;
+            padding: 18px;
+            border: 1px solid var(--site-line);
+            border-top: 3px solid var(--site-teal);
+            border-radius: 4px;
+            background: var(--site-paper);
+        }
+
+        .perspective:nth-child(2) {
+            border-top-color: #7293a6;
+        }
+
+        .perspective:nth-child(3) {
+            border-top-color: #829a73;
+        }
+
+        .perspective h3 {
+            margin: 0 0 8px;
+            color: var(--site-ink);
+            font: 400 19px/1.3 var(--site-serif);
+        }
+
+        .perspective p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .callout {
+            margin-top: 17px;
+            padding: 15px 18px;
+            border-left: 3px solid var(--site-teal);
+            background: var(--site-teal-soft);
+        }
+
+        .callout p:last-child {
+            margin-bottom: 0;
+        }
+
+        .callout.warning {
+            border-left-color: var(--site-gold);
+            background: #fff8ed;
+        }
+
+        .callout strong {
+            color: var(--site-ink);
+        }
+
+        .example-details {
+            margin-top: 18px;
+            border: 1px solid var(--site-line);
+            border-radius: 4px;
+            background: var(--site-paper);
+        }
+
+        .example-details summary {
+            padding: 15px 18px;
+            color: var(--site-ink);
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .example-body {
+            padding: 0 18px 18px;
+        }
+
+        .example-body p {
+            max-width: 76ch;
+        }
+
+        .breakpoint-table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--site-line);
+            border-radius: 4px;
+            background: var(--site-paper);
+        }
+
+        .breakpoint-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            font-variant-numeric: tabular-nums;
+            text-align: left;
+        }
+
+        .breakpoint-table th,
+        .breakpoint-table td {
+            padding: 10px 13px;
+            border-bottom: 1px solid var(--site-line);
+        }
+
+        .breakpoint-table th {
+            color: var(--site-muted);
+            font-size: 12px;
+        }
+
+        .breakpoint-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .trial-record {
+            margin-top: 17px;
+            border: 1px solid var(--site-line);
+            border-radius: 4px;
+            background: var(--site-paper);
+        }
+
+        .trial-record summary {
+            padding: 14px 17px;
+            color: var(--site-ink);
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .trial-record .breakpoint-table-wrap {
+            margin: 0 15px 15px;
+        }
+
+        .trial-record-note {
+            margin: 0 15px 14px;
+            color: var(--site-muted);
+            font-size: 13px;
+        }
+
+        .question-groups {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .feedback-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .question-group,
+        .feedback-proposal {
+            min-width: 0;
+            padding: 20px;
+            border: 1px solid var(--site-line);
+            border-radius: 4px;
+            background: var(--site-paper);
+        }
+
+        .question-group h3,
+        .feedback-proposal h3 {
+            margin: 0 0 9px;
+            color: var(--site-ink);
+            font: 400 21px/1.3 var(--site-serif);
+        }
+
+        .question-group ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .question-group li {
+            margin: 7px 0;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .feedback-proposal p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .feedback-proposal p + p {
+            margin-top: 10px;
+            color: var(--site-muted);
+        }
+
+        .reflection-section {
+            scroll-margin-top: 100px;
+        }
+
+        @media (max-width: 1050px) {
+            .step-layout {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .page-sidebar {
+                position: sticky;
+                top: 0;
+                z-index: 5;
+                max-height: none;
+                margin: 0 -22px;
+                padding: 9px 22px;
+                border-bottom: 1px solid var(--site-line);
+                background: var(--site-canvas);
+            }
+
+            .page-sidebar nav {
+                display: flex;
+                gap: 4px;
+                overflow-x: auto;
+            }
+
+            .page-sidebar a {
+                flex: 0 0 auto;
+                white-space: nowrap;
+            }
+
+            .comparison-grid,
+            .question-groups {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 760px) {
+            .step-main {
+                width: min(100% - 36px, 680px);
+            }
+
+            .step-hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .share-section {
+                padding: 31px 0;
+            }
+
+            .share-section h2 {
+                font-size: 26px;
+            }
+
+            .comparison-grid,
+            .question-groups,
+            .feedback-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-sidebar {
+                margin-right: -18px;
+                margin-left: -18px;
+                padding-right: 18px;
+                padding-left: 18px;
+            }
+
+            .question-group,
+            .feedback-proposal {
+                padding: 17px;
+            }
+
+            .callout {
+                padding: 14px 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="top site-top">
+        <span>SYSTEMS PROGRAMMING · INVESTIGATION NOTES</span>
+        <span>STEPS 3 &amp; 4 · PEER EXCHANGE AND REFLECTION</span>
+    </header>
+    <nav class="site-nav" aria-label="Midterm steps">
+        <a href="index.html">Overview</a>
+        <a href="step-1.html">Step 1</a>
+        <a href="memory-page-investigation.html">Step 2</a>
+        <a href="step-3.html" aria-current="page">Steps 3 &amp; 4</a>
+    </nav>
+
+    <main class="step-main">
+        <div class="step-layout">
+            <aside class="page-sidebar" aria-labelledby="page-nav-title">
+                <p class="page-sidebar-title" id="page-nav-title">On this page</p>
+                <nav aria-label="Page sections">
+                    <a href="#model-title">Problem model</a>
+                    <a href="#starting-title">Starting points</a>
+                    <a href="#search-title">Search methods</a>
+                    <a href="#difficulty-title">Difficulties</a>
+                    <a href="#checks-title">Checking results</a>
+                    <a href="#scope-title">Search scope</a>
+                    <a href="#discussion-title">Open questions</a>
+                    <a href="#feedback-title">Feedback</a>
+                    <a href="#reflection-title">Reflection</a>
+                </nav>
+            </aside>
+            <div class="page-content">
+                <section class="step-hero" aria-labelledby="page-title">
+                    <p class="site-eyebrow">Steps 3 &amp; 4 · Share and reflect</p>
+                    <h1 id="page-title">Steps 3 &amp; 4 — Peer Exchange and Reflection</h1>
+                    <p class="step-purpose">I’m reflecting alongside the comparisons because exchanging approaches helped me reconsider my own reasoning. Comparing our work showed me how earlier questions shaped our calculations, what I learned from feedback, and which habits I can carry into future assignments.</p>
+                </section>
+
+        <section class="share-section" aria-labelledby="model-title">
+            <span class="issue-label">Step 3 · Shared issue 01</span>
+            <h2 id="model-title">How did we first make sense of the machine?</h2>
+            <p class="section-lead">Before searching, each of us needed a model of what counts as a page, what gets wasted, and how bookkeeping enters the penalty. A small example makes that model visible, but it does not by itself establish that a full-workload calculation is correct.</p>
+            <div class="comparison-grid">
+                <article class="perspective">
+                    <h3>My approach</h3>
+                    <p>I began with 1,000-bit pages and checked one program’s penalty by hand and in Rust. I expanded my calculation first to one day’s file, then to all 32 days. That staged progression let me check one part before adding the next. My hand example checked the arithmetic for one request; it did not, by itself, verify all inputs or daily aggregation.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Angela Padilla</h3>
+                    <p>Angela identified the fixed requests, 32 days, and 64-bit bookkeeping cost, with page size as the choice. Her 300-bit request with 128-bit pages needs 3 pages: 384 allocated, 84 unused, 192 bookkeeping, 576 total storage, and a 276-bit penalty. This is one program, not a whole day.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Manauri Rodriguez</h3>
+                    <p>Manauri used the 32,294-bit first request and a proposed 32,300-bit page: 6 unused bits plus one 64-bit record gives a 70-bit penalty for that program. It illustrates the trade-off, but one request cannot establish a day or workload score.</p>
+                </article>
+            </div>
+            <p class="reflection-note"><strong>Reflection.</strong> Seeing our one-request examples side by side helped me understand how the page, unused-space, and bookkeeping costs fit together. My hand calculation gave me one result I could compare with Rust; building from one program to one day and then all 32 days kept the calculation understandable as it grew. I’ll carry forward the habit of tracing a small case before scaling up.</p>
+        </section>
+
+        <section class="share-section" aria-labelledby="starting-title">
+            <span class="issue-label">Step 3 · Shared issue 02</span>
+            <h2 id="starting-title">What did a starting point help us see?</h2>
+            <p class="section-lead">A heuristic or trial is useful as a way into the problem. Its value is exploratory: it gives the next question to ask, not proof that the chosen size is optimal.</p>
+            <div class="comparison-grid">
+                <article class="perspective">
+                    <h3>My approach</h3>
+                    <p>After extending the calculation from one program to one day and all 32 days, I manually tried page sizes including 1,000, 10,000, and 100,000 bits, then 30,000. The 30,000-bit trial was an intermediate exploratory choice, not a mathematical midpoint or a guaranteed narrowing step. Its reported average daily penalty was 4,313,646.46875 bits.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Angela Padilla</h3>
+                    <p>Angela used an average of 8,396,617 as an initial size heuristic. I considered that a reasonable exploratory hypothesis: it gave her a concrete candidate to test, even though she reported a large average daily penalty of 803,203,256 bits at that size. A useful experiment need not produce a good candidate; it can show what to try next. Her later manual trials included 16,793 bits with 5,174,143 and 33,050 bits with 4,204,125 before she searched a wider local interval.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Manauri Rodriguez</h3>
+                    <p>Manauri considered a page size of 32,300 for the single 32,294-bit request. That estimate makes the one-program cost easy to calculate, and also prompted the question of whether it would suit the other 4,095 requests.</p>
+                </article>
+            </div>
+            <details class="trial-record">
+                <summary>Angela’s complete reported heuristic and manual-trial results</summary>
+                <div class="breakpoint-table-wrap">
+                    <table class="breakpoint-table">
+                        <thead>
+                            <tr><th scope="col">Candidate page size</th><th scope="col">Reported average daily penalty (bits)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Overall average as page size</td><td>803,203,256</td></tr>
+                            <tr><td>Overall average ÷ 2</td><td>400,829,630</td></tr>
+                            <tr><td>Overall average ÷ 10</td><td>79,933,671</td></tr>
+                            <tr><td>Overall average ÷ 50</td><td>15,590,110</td></tr>
+                            <tr><td>Overall average ÷ 100</td><td>7,899,225</td></tr>
+                            <tr><td>Overall average ÷ 500; also reported for 16,793 bits</td><td>5,174,143</td></tr>
+                            <tr><td>Overall average ÷ 1,000</td><td>8,725,364</td></tr>
+                            <tr><td>16,000 bits</td><td>5,362,877</td></tr>
+                            <tr><td>20,000 bits</td><td>4,794,147</td></tr>
+                            <tr><td>30,000 bits</td><td>4,313,647</td></tr>
+                            <tr><td>32,000 bits</td><td>4,273,845</td></tr>
+                            <tr><td>32,500 bits</td><td>4,299,216</td></tr>
+                            <tr><td>33,000 bits</td><td>4,221,949</td></tr>
+                            <tr><td>33,001 bits</td><td>4,221,518</td></tr>
+                            <tr><td>33,049 bits</td><td>4,210,863</td></tr>
+                            <tr><td>33,050 bits</td><td>4,204,125</td></tr>
+                            <tr><td>33,051 bits</td><td>4,210,838</td></tr>
+                            <tr><td>33,100 bits</td><td>4,233,139</td></tr>
+                            <tr><td>32,768 bits; best in her exhaustive 32,000–40,000 search</td><td>3,173,294</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="trial-record-note">Angela’s numbers came from her code, and she used <code>.ceil()</code> to round the displayed averages up to whole bits.</p>
+            </details>
+            <p class="reflection-note"><strong>Reflection.</strong> Comparing our trials helped me see that a starting guess can be useful even when it scores poorly: it gives the next experiment a direction. Angela’s later local search and my wider search answered questions that isolated guesses could not. I’ll treat a starting point as a way into exploration, not as evidence that the search is complete.</p>
+        </section>
+
+        <section class="share-section" aria-labelledby="search-title">
+            <span class="issue-label">Step 3 · Shared issue 03</span>
+            <h2 id="search-title">How did exploration become a search?</h2>
+            <p class="section-lead">We moved beyond isolated guesses in different ways: I searched a bounded range and checked the remaining sizes with a lower bound, Angela searched a local interval, and Manauri described an efficient way to update page-count changes.</p>
+            <div class="comparison-grid">
+                <article class="perspective">
+                    <h3>My approach</h3>
+                    <p>I tested every integer page size from 1 through 100,000, compared exact integer totals, and kept ties. Because that finite search alone left larger sizes untested, I then derived a lower bound of 172,260,831 bits for every size above 100,000. It exceeds my best tested total, 101,545,439 bits, so the remaining sizes cannot win under the problem’s rules.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Angela Padilla</h3>
+                    <p>Angela searched every size from 32,000 through 40,000 and found 32,768 best within that interval. This is stronger than sampling a few nearby guesses, but does not by itself compare sizes below 32,000 or above 40,000.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Manauri Rodriguez</h3>
+                    <p>Manauri stored requests by day, tracked the largest request, and described using quotient breakpoints to record changes in total page count in a <code>changes</code> vector. His approach helped me notice that several consecutive page sizes can require the same number of pages. Tracking where that count changes offers a way to reduce repeated calculations during the search.</p>
+                </article>
+            </div>
+
+            <details class="example-details">
+                <summary>Understanding Manauri’s approach with a small example</summary>
+                <div class="example-body">
+                    <p>To understand the idea in Manauri’s explanation, I can follow what happens to one 23-bit request as the page size increases.</p>
+                    <p>For this request, the page count is <code>ceil(23 / page_size)</code>. At page sizes 8, 9, 10, and 11, it remains 3 pages; at size 12, it drops to 2. With positive integer inputs in a language that truncates integer division, the ceiling can be written <code>(request + page_size - 1) / page_size</code>. The parentheses ensure the addition happens before division.</p>
+                    <div class="breakpoint-table-wrap">
+                        <table class="breakpoint-table">
+                            <thead>
+                                <tr><th scope="col">Page size</th><th scope="col">Pages</th><th scope="col">Unused bits</th><th scope="col">Records</th><th scope="col">Penalty</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>8</td><td>3</td><td>1</td><td>3 × 64</td><td>193</td></tr>
+                                <tr><td>9</td><td>3</td><td>4</td><td>3 × 64</td><td>196</td></tr>
+                                <tr><td>10</td><td>3</td><td>7</td><td>3 × 64</td><td>199</td></tr>
+                                <tr><td>11</td><td>3</td><td>10</td><td>3 × 64</td><td>202</td></tr>
+                                <tr><td>12</td><td>2</td><td>1</td><td>2 × 64</td><td>129</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>This shows how several consecutive page sizes can need the same number of pages, offering an opportunity to reduce repeated calculations. The penalty still changes while the page count stays constant: from sizes 8 through 11, allocated space rises while bookkeeping stays fixed, so this program’s penalty rises from 193 to 202 before the page-count drop at 12.</p>
+                </div>
+            </details>
+
+            <div class="callout">
+                <p><strong>Connecting his approach to my calculation.</strong></p>
+                <p>For one request, the penalty is <code>(page size + 64) × pages − request</code>. Adding across requests gives <code>total penalty = (page size + 64) × total allocated pages − total useful bits</code>. This shows why tracking total page count can help calculate the score. I recalculated each request’s contribution for every candidate page size, while Manauri described updating the page count where it changes.</p>
+            </div>
+            <p class="reflection-note"><strong>Reflection.</strong> Comparing our searches helped me separate efficient scoring from search coverage. Manauri’s quotient grouping made me notice how page-count updates could reduce repeated work, while Angela’s local search showed what an exhaustive interval can establish. My own lower bound extended my 1–100,000 search to a global conclusion for this workload. In future searches, I’ll state both what I covered and why it is safe to stop.</p>
+        </section>
+
+        <section class="share-section" aria-labelledby="difficulty-title">
+            <span class="issue-label">Step 3 · Shared issue 04</span>
+            <h2 id="difficulty-title">What happened when the work got difficult?</h2>
+            <div class="comparison-grid">
+                <article class="perspective">
+                    <h3>My approach</h3>
+                    <p>I read the problem several times before I understood it. Making the Step 1 poster helped me organize the rules and see how the parts connected. Once I finished it, I had a clear understanding and found it easier to start. This assignment was my first time using VS Code instead of GitHub Codespaces, so learning the editor and terminal slowed me down at first. One run did not reflect an edit because I had not saved the file, a small example of getting familiar with VS Code. The coding itself was manageable because I started with a plan and built the program in stages. Whenever I did not know how to do something in Rust, I looked it up or used previous class assignments as guidance.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Angela Padilla</h3>
+                    <p>Angela found it difficult to know where to begin. Small examples and manual adjustments gave her a starting point, then a local exhaustive loop helped her explore beyond those individual trials.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Manauri Rodriguez</h3>
+                    <p>Manauri said applying his page-count changes vector in Rust was the hardest part, and that outside help got him unstuck. His approach used quotient-grouped changes to avoid repeating page-count work.</p>
+                </article>
+            </div>
+            <p class="reflection-note"><strong>Reflection.</strong> Our obstacles happened at different stages. I needed to understand the problem and learn a new editor; Angela needed a starting point for exploration; Manauri needed help implementing a more complex calculation. Comparing those difficulties helps me choose a next action that fits the obstacle: draw the problem, try a small example, consult previous work, or ask a precise question.</p>
+        </section>
+
+        <section class="share-section" aria-labelledby="checks-title">
+            <span class="issue-label">Step 3 · Shared issue 05</span>
+            <h2 id="checks-title">How did we check the results?</h2>
+            <p class="section-lead">Comparing our checks helped me distinguish agreeing on an answer from understanding what the evidence supports.</p>
+            <div class="comparison-grid">
+                <article class="perspective">
+                    <h3>My approach</h3>
+                    <p>I compared exact integer totals through the search. After selecting the winning total, I divided it by 32 to report an exact average daily penalty of 3,173,294.96875 bits. My daily report at 32,768 bits sums to 101,545,439 bits, matching the search total.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Angela Padilla</h3>
+                    <p>Angela and I both found 32,768 bits as the best page size in our searches. Her reported average daily penalty is 3,173,294 bits, compared with my exact 3,173,294.96875 bits. Her numbers came from her code, and she used <code>.ceil()</code> to round displayed averages up to whole bits, so her displayed value is one bit below the ceiling of my figure, 3,173,295. This difference remains to be reconciled, even though we found the same page size.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Manauri Rodriguez</h3>
+                    <p>Manauri reports direct checks at 16,384 bits (151,186,015 total), 32,768 (101,545,439), and 65,536 (135,099,871), plus daily statistics. This gives useful spot checks around the reported minimum; by itself it does not establish every candidate’s result or prove the optimized updates.</p>
+                </article>
+            </div>
+            <div class="callout">
+                <p><strong>What comparing our checks helped me understand</strong></p>
+                <p>Our checks served different purposes. My hand example checked one calculation, and my daily report checked that the daily penalties added to my search total. Manauri’s direct calculations at smaller and larger sizes showed the trade-off around the winning size.</p>
+                <p>Comparing our work helped me understand why reaching the same answer is only part of checking a result. Input counts, rounding up the number of pages, bookkeeping costs, and daily totals each address a different possible mistake. The useful question became: what does each check help us trust, and what still needs checking?</p>
+            </div>
+        </section>
+
+        <section class="share-section" aria-labelledby="scope-title">
+            <span class="issue-label">Step 3 · Shared issue 06</span>
+            <h2 id="scope-title">What does the evidence let us conclude?</h2>
+            <p class="section-lead">Comparing our search ranges helped me separate the best result within a tested interval from a conclusion about every permitted size.</p>
+            <div class="comparison-grid">
+                <article class="perspective">
+                    <h3>My approach</h3>
+                    <p>In Step 2, I found a unique minimum at 32,768 among sizes 1–100,000, with a total of 101,545,439 bits. My lower bound for every size above 100,000 is 172,260,831 bits, larger than that total. Together, the search and bound support 32,768 as the global optimum for these workloads under the problem’s rules.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Angela Padilla</h3>
+                    <p>Angela found 32,768 best within the 32,000–40,000 interval she searched. Her result supports mine, but it doesn’t independently rule out sizes outside that interval.</p>
+                </article>
+                <article class="perspective">
+                    <h3>Manauri Rodriguez</h3>
+                    <p>Manauri described searching page sizes through the largest request and finding a unique minimum. My result comes from enumerating 1–100,000 and showing that every larger size has a lower bound above my best total. Angela’s search covers 32,000–40,000. Those ranges and stopping arguments define what each result covers.</p>
+                </article>
+            </div>
+
+            <div class="callout">
+                <p><strong>Why the largest request is a finite bound.</strong> Let <code>M</code> be the largest positive request. For any page size <code>p ≥ M</code>, every program fits in one page. The total then equals <code>N(p + 64) − S</code>, where <code>N</code> is the number of requests and <code>S</code> is their fixed useful-bit sum. Increasing <code>p</code> by one adds <code>N</code> penalty bits, so no size above <code>M</code> can improve on size <code>M</code>. This is a mathematical search-bound argument; it is separate from verifying that Manauri’s code implemented it correctly.</p>
+            </div>
+            <p class="reflection-note"><strong>Reflection.</strong> Angela’s result is best within her 32,000–40,000 interval, while my search and lower bound support a global result for this workload. Manauri described a maximum-request stopping point. Seeing those different scopes together taught me to pair an optimum with a clear account of what was searched and what justifies the stopping point.</p>
+        </section>
+
+        <section class="share-section" aria-labelledby="discussion-title">
+            <span class="issue-label">Step 3 · Questions kept open</span>
+            <h2 id="discussion-title">Questions our comparison raised</h2>
+                <p class="section-lead">Comparing our work raised these questions. We haven’t answered all of them yet, so they remain open until we have an explanation, calculation, or test.</p>
+            <div class="question-groups">
+                <article class="question-group">
+                    <h3>For Angela</h3>
+                    <ul>
+                        <li>What does 8,396,617 measure, and which values and denominator produced it?</li>
+                        <li>How did the code calculate the score of 803,203,256 at the average-based candidate size?</li>
+                        <li>What explains the large penalty at that starting size, and what did the later manual trials reveal?</li>
+                        <li>What additional evidence would rule out sizes below 32,000 and above 40,000?</li>
+                    </ul>
+                </article>
+                <article class="question-group">
+                    <h3>For Manauri</h3>
+                    <ul>
+                        <li>Can we trace one request through a short `changes` vector and mark which breakpoint changes its page count?</li>
+                        <li>How did you check that a change is applied at the correct page size?</li>
+                        <li>Did direct calculations match the optimized method around several breakpoints?</li>
+                        <li>What range did the implementation cover, how were ties retained, and what supports the search-bound claim?</li>
+                        <li>For the first request, can we label 70 bits explicitly as one program’s penalty, not a day total?</li>
+                    </ul>
+                </article>
+                <article class="question-group">
+                    <h3>For my work</h3>
+                    <ul>
+                        <li>Why did I choose 100,000 as the initial cutoff, and what assumptions make my lower bound cover every larger size?</li>
+                        <li>How does dividing every candidate’s total by the same 32 preserve the winner, and why do integer totals avoid rounding during comparisons?</li>
+                        <li>What did my hand example verify, and what did it leave unchecked?</li>
+                        <li>How can we sum my 32 daily report rows to independently reproduce 101,545,439?</li>
+                        <li>How can I make clear that 30,000 was an exploratory trial, not a midpoint or narrowing guarantee?</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <section class="share-section" aria-labelledby="feedback-title">
+            <span class="issue-label">Step 3 · Feedback and response</span>
+            <h2 id="feedback-title">Feedback we exchanged</h2>
+            <p class="section-lead">Angela’s feedback helped me recognize the value of building my calculation in stages. Comparing my direct search with Manauri’s change-based approach also helped me see how a straightforward calculation and an optimized one can serve different purposes.</p>
+            <div class="feedback-grid">
+                <article class="feedback-proposal">
+                    <h3>What Angela noticed about my approach</h3>
+                    <p>Angela pointed out that I started by checking one program, then expanded to one day’s file and finally all 32 days. Building the program this way let me check each new part against a calculation I already understood.</p>
+                    <p>She also noticed that we both moved from manual trials to a search loop and reached 32,768 bits. Her comparison helped me recognize that trying individual sizes was useful for exploring, while the loop checked possibilities our guesses could miss.</p>
+                </article>
+                <article class="feedback-proposal">
+                    <h3>What Manauri noticed about my approach</h3>
+                    <p>Manauri highlighted the value of having a direct calculation that is easy to trace. My program applies the same penalty formula to every request at each candidate size, so there is a straightforward route from the input data to the total. That makes the method useful as a reference when checking a more complex search.</p>
+                    <p>His change-based approach gave us a useful contrast: my search repeats the page calculation for each candidate, while his approach tracks where page counts change. The methods can complement each other—a direct calculation provides a clear reference, and grouping changes offers a way to reduce repeated work.</p>
+                </article>
+                <article class="feedback-proposal">
+                    <h3>How I responded</h3>
+                    <p>I kept my staged, direct approach because I could explain each part and connect the full search to my hand calculation. Angela’s feedback helped me see that those stages were useful checkpoints, rather than just steps toward a larger program.</p>
+                    <p>Manauri’s approach helped me ask which calculations my program repeats unnecessarily. I did not replace my search with a grouped algorithm; instead, I took away a way to approach future optimizations: keep a simple reference calculation and compare a more efficient method against it on small cases and at boundaries where its behavior changes.</p>
+                    <p>The exchange also included feedback in the other direction. I suggested that Angela include each day’s costs at the winning size and encouraged her average-based starting experiment. For Manauri’s explanation, we discussed the value of a small worked example showing when a page-count change occurs. These suggestions focused on making the reasoning easier for another person to follow.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="share-section reflection-section" aria-labelledby="reflection-title">
+            <span class="issue-label">Step 4 · Reflect</span>
+            <h2 id="reflection-title">What I’ll carry into future work</h2>
+            <p>At first, I reread the problem several times because I was unsure how the page rules, unused space, and bookkeeping fit together. Making the Step 1 poster helped me organize those rules, and a small hand example made the calculation concrete. Building the Rust program in stages—from one request to one day and then all 32 days—gave me intermediate results I could follow before combining them.</p>
+            <p>Comparing Angela’s average-based starting point, manual trials, and local exhaustive search helped me see how exploration can grow into a systematic search. Manauri’s quotient-grouped page-count changes showed me another way to reduce repeated calculations. Agreement on 32,768 bits was encouraging, but understanding what the evidence supported was more useful: my search and lower bound cover this workload, while Angela’s interval and Manauri’s reported checks have their own scopes. Questions about Angela’s initial average and details of Manauri’s updates remain open. In future assignments, I’ll start with a checkable example, scale my work in stages, and record what each check establishes as well as what remains uncertain.</p>
+        </section>
+
+        <nav class="step-footer" aria-label="Step navigation">
+            <a href="memory-page-investigation.html">← Step 2: Engage</a>
+            <a href="index.html">Midterm overview →</a>
+        </nav>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

@@ -1,0 +1,1518 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Finding the Best Memory Page Size — Step 2</title>
+    <meta name="description"
+        content="A record of the calculations, experiments, Rust code, checks and reasoning used to find the best page size.">
+    <style>
+        * {
+            box-sizing: border-box
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 30px
+        }
+
+        body {
+            margin: 0;
+            background: #f7efef;
+            color: #233c49;
+            font: 17px/1.7 system-ui, -apple-system, sans-serif
+        }
+
+        a {
+            color: #116d75
+        }
+
+        button,
+        input {
+            font: inherit
+        }
+
+        button {
+            cursor: pointer;
+            border: 1px solid #b8ced0;
+            border-radius: 6px;
+            padding: 8px 14px;
+            background: white;
+            color: #174955
+        }
+
+        button:hover {
+            background: #e6f1ef
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        input:focus-visible,
+        summary:focus-visible {
+            outline: 3px solid #da8e2a;
+            outline-offset: 4px
+        }
+
+        .top {
+            background: #173d47;
+            color: #dce8e8;
+            padding: 14px 5%;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            font-size: 13px;
+            letter-spacing: 1px
+        }
+
+        .shell {
+            max-width: 1420px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 210px minmax(0, 1fr);
+            gap: 50px;
+            padding: 0 35px
+        }
+
+        nav {
+            position: sticky;
+            top: 28px;
+            align-self: start;
+            padding-top: 45px
+        }
+
+        nav b {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px
+        }
+
+        nav a {
+            display: block;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 10px 0;
+            border-bottom: 1px solid #d9e0dc
+        }
+
+        main {
+            min-width: 0;
+            padding-bottom: 50px
+        }
+
+        .hero {
+            padding: 65px 0 38px;
+            border-bottom: 1px solid #cdd8d3
+        }
+
+        .eyebrow {
+            color: #16757a;
+            font-size: 12px;
+            letter-spacing: 2px;
+            font-weight: 750;
+            text-transform: uppercase
+        }
+
+        h1,
+        h2 {
+            font-family: Georgia, serif;
+            font-weight: 400;
+            line-height: 1.12
+        }
+
+        h1 {
+            font-size: clamp(42px, 5vw, 69px);
+            max-width: 850px;
+            margin: 17px 0 24px
+        }
+
+        h2 {
+            font-size: 36px;
+            margin: 8px 0 23px
+        }
+
+        h3 {
+            font-size: 19px;
+            line-height: 1.4;
+            margin: 0 0 10px
+        }
+
+        p {
+            margin: 0 0 16px
+        }
+
+        .lead {
+            font-size: 21px;
+            max-width: 770px
+        }
+
+        .chips {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 25px
+        }
+
+        .chips span {
+            border: 1px solid #bfd0ca;
+            border-radius: 30px;
+            padding: 5px 14px;
+            font-size: 13px
+        }
+
+        .stage {
+            padding: 44px 0;
+            border-bottom: 1px solid #cdd8d3
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px
+        }
+
+        .card {
+            padding: 26px;
+            border: 1px solid #d3dfda;
+            border-radius: 10px;
+            background: #fff
+        }
+
+        .reason {
+            background: #e9f0ec;
+            border-left: 4px solid #197e80;
+            padding: 20px 24px;
+            margin: 22px 0
+        }
+
+        .next {
+            font-size: 15px;
+            color: #48666e;
+            border-top: 1px dashed #bbcdc5;
+            padding-top: 14px;
+            margin-top: 22px
+        }
+
+        .eq {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.4;
+            color: #126c77;
+            margin: 12px 0
+        }
+
+        .calc {
+            counter-reset: calc
+        }
+
+        .calc article {
+            position: relative;
+            padding: 18px 0 18px 45px;
+            border-bottom: 1px solid #e0e6e1;
+            counter-increment: calc
+        }
+
+        .calc article:before {
+            content: counter(calc);
+            position: absolute;
+            left: 0;
+            top: 20px;
+            border-radius: 50%;
+            background: #dceeea;
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700
+        }
+
+        .calc article:last-child {
+            border: 0
+        }
+
+        .muted,
+        small {
+            color: #58717a
+        }
+
+        .bar {
+            display: flex;
+            overflow: hidden;
+            border-radius: 6px;
+            min-height: 65px;
+            border: 1px solid #52798a;
+            margin: 12px 0
+        }
+
+        .used {
+            background: #2b79aa;
+            color: white;
+            width: 29.4%
+        }
+
+        .unused {
+            background: #f1ba6d;
+            color: #40311e;
+            width: 70.6%
+        }
+
+        .bar span {
+            display: grid;
+            place-items: center;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 650;
+            line-height: 1.4
+        }
+
+        .tablewrap {
+            overflow: auto
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 15px;
+            font-variant-numeric: tabular-nums
+        }
+
+        th,
+        td {
+            padding: 12px 13px;
+            text-align: right;
+            border-bottom: 1px solid #d9e1dc
+        }
+
+        th {
+            background: #e8efeb;
+            font-size: 13px
+        }
+
+        th:first-child,
+        td:first-child {
+            text-align: left
+        }
+
+        tr.best {
+            background: #deeee6;
+            font-weight: 700
+        }
+
+        pre {
+            background: #153843;
+            color: #e1f1f3;
+            padding: 23px;
+            border-radius: 8px;
+            overflow: auto;
+            line-height: 1.6;
+            font-size: 13px;
+            white-space: pre
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            font-size: .9em
+        }
+
+        pre code {
+            font-size: inherit
+        }
+
+        details {
+            margin-top: 16px;
+            border: 1px solid #d2dfd7;
+            border-radius: 8px;
+            padding: 14px 18px;
+            background: white
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 650
+        }
+
+        .highlight {
+            background: #173d47;
+            color: #e4eeee;
+            border-radius: 12px;
+            padding: 30px
+        }
+
+        .highlight h3 {
+            color: #99d7cd
+        }
+
+        .big {
+            font-size: 47px;
+            font-weight: 750;
+            line-height: 1.2;
+            margin: 10px 0
+        }
+
+        .chart {
+            display: grid;
+            gap: 14px;
+            margin-top: 20px
+        }
+
+        .chartrow {
+            display: grid;
+            grid-template-columns: 75px 1fr 75px;
+            gap: 10px;
+            align-items: center;
+            font-size: 13px
+        }
+
+        .track {
+            background: #e9eeeb;
+            height: 19px;
+            border-radius: 3px;
+            overflow: hidden
+        }
+
+        .fill {
+            height: 100%;
+            background: #6e9da3
+        }
+
+        .fill.win {
+            background: #19776f
+        }
+
+        .tools {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 18px 0
+        }
+
+        .interactive {
+            border: 1px solid #a9c8c5;
+            background: #edf6f2;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 24px 0
+        }
+
+        input {
+            width: 160px;
+            border: 1px solid #9cb9b5;
+            border-radius: 5px;
+            padding: 8px;
+            margin: 0 10px
+        }
+
+        .outputs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 18px
+        }
+
+        .outputs strong {
+            font-size: 25px;
+            display: block;
+            color: #146c73
+        }
+
+        .notice {
+            font-size: 14px;
+            color: #57717a
+        }
+
+        .footer {
+            font-size: 13px;
+            color: #57717a;
+            padding-top: 25px
+        }
+
+        ul {
+            padding-left: 22px
+        }
+
+        li {
+            margin: 8px 0
+        }
+
+        @media(max-width:980px) {
+            .shell {
+                grid-template-columns: 1fr;
+                gap: 0;
+                padding: 0 22px
+            }
+
+            nav {
+                position: static;
+                display: flex;
+                gap: 14px;
+                overflow: auto;
+                padding-top: 18px
+            }
+
+            nav a {
+                white-space: nowrap
+            }
+
+            nav b {
+                display: none
+            }
+
+            .hero {
+                padding-top: 35px
+            }
+
+            .grid {
+                grid-template-columns: 1fr
+            }
+
+            .top {
+                font-size: 11px
+            }
+
+            .big {
+                font-size: 36px
+            }
+
+            .outputs {
+                grid-template-columns: 1fr
+            }
+
+            input {
+                margin: 10px 0
+            }
+
+            .chartrow {
+                grid-template-columns: 65px 1fr 70px
+            }
+        }
+
+        @media print {
+            @page {
+                margin: 15mm
+            }
+
+            body {
+                background: white;
+                font-size: 11pt
+            }
+
+            .top,
+            nav,
+            .tools,
+            .interactive {
+                display: none
+            }
+
+            .shell {
+                display: block;
+                padding: 0
+            }
+
+            h1 {
+                font-size: 35pt
+            }
+
+            h2 {
+                font-size: 25pt
+            }
+
+            .hero,
+            .stage {
+                padding: 20px 0
+            }
+
+            .card,
+            .highlight,
+            .reason,
+            table {
+                break-inside: avoid
+            }
+
+            details {
+                display: none
+            }
+
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact
+            }
+
+            .grid {
+                grid-template-columns: 1fr 1fr
+            }
+        }
+    /* Expandable source evidence for each recorded coding stage. */
+.stage-code summary { line-height: 1.5; }
+.stage-code > p:first-of-type { margin-top: 16px; }
+.stage-code pre { max-height: 680px; overflow: auto; tab-size: 4; }
+@media print { details.stage-code { display: block; } details.stage-code > :not(summary) { display: block !important; } .stage-code pre { max-height: none; overflow: visible; white-space: pre-wrap; overflow-wrap: anywhere; } }
+</style>
+    <link rel="stylesheet" href="site.css">
+</head>
+
+<body>
+    <header class="top"><span>SYSTEMS PROGRAMMING · INVESTIGATION NOTES</span><span>STEP 2 — ENGAGE WITH THE
+            PROBLEM</span></header>
+    <nav class="site-nav" aria-label="Midterm pages">
+        <a href="index.html">Overview</a>
+        <a href="step-1.html">Step 1</a>
+        <a href="memory-page-investigation.html" aria-current="page">Step 2</a>
+        <a href="step-3.html">Steps 3 &amp; 4</a>
+    </nav>
+    <div class="shell">
+        <nav aria-label="Investigation stages"><b>Follow the investigation</b><a href="#start">00 · The approach</a><a
+                href="#hand">01 · Start by hand</a><a href="#rust">02 · Check with Rust</a><a href="#scale">03 · Scale
+                to 32 days</a><a href="#trials">04 · Try different sizes</a><a href="#search">05 · Automate the
+                search</a><a href="#proof">06 · Prove the result</a><a href="#report">07 · Daily results</a><a
+                href="#code">08 · Code & running it</a></nav>
+        <main>
+            <section class="hero" id="start">
+                <div class="eyebrow">A record of how the solution developed</div>
+                <h1>Finding the best<br>memory page size.</h1>
+                <p class="lead">From one calculation by hand to a search across 100,000 choices: the attempts, checks,
+                    results, and reasoning behind a 32,768-bit page size.</p>
+                <p>This page documents Step 2, “Engage with the problem.” Each stage explains what I tried, why I tried
+                    it, what happened, and how it led to the next step.</p>
+                <div class="chips"><span>32 independent days</span><span>4,096 program requests</span><span>One page
+                        size throughout</span><span>All memory costs in bits</span></div>
+                <div class="tools"><button onclick="window.print()">Print / save as PDF</button><a href="#code">Go to
+                        the Rust source ↓</a></div>
+            </section>
+            <section class="stage" id="hand">
+                <div class="eyebrow">Stage 01 · Build a checkable example</div>
+                <h2>Start with one program, by hand.</h2>
+                <p>Before processing the files, I worked through the first request manually. A small example gives me a
+                    known answer to compare with the code. It also makes the distinction between useful data, unused
+                    space, and bookkeeping visible.</p>
+                <div class="grid">
+                    <div>
+                        <div class="card">
+                            <h3>The values I started with</h3>
+                            <p><strong>32,294 bits</strong> of useful data<br>The first entry in
+                                <code>day_01/loads</code>.</p>
+                            <p><strong>1,000-bit pages</strong><br>A simple trial size.</p>
+                            <p><strong>64 bits per page</strong><br>One bookkeeping record for each allocated page.</p>
+                        </div>
+                        <div class="reason"><strong>What I needed to check</strong><br>The program must receive enough
+                            whole pages. I must count both kinds of extra memory, and I must not count the useful data
+                            itself as a penalty.</div>
+                    </div>
+                    <div class="card calc">
+                        <article>
+                            <h3>Find the number of pages</h3>
+                            <div class="eq">32,294 ÷ 1,000 = 32.294 → 33</div>
+                            <p>Round up: 32 pages hold only 32,000 bits, which would not fit the request.</p>
+                        </article>
+                        <article>
+                            <h3>Calculate allocated space</h3>
+                            <div class="eq">33 × 1,000 = 33,000 bits</div>
+                            <p>A partly filled page still occupies its full size.</p>
+                        </article>
+                        <article>
+                            <h3>Find the unused space</h3>
+                            <div class="eq">33,000 − 32,294 = 706 bits</div>
+                            <p>The first 32 pages are full. This is the final page:</p>
+                            <div class="bar" role="img" aria-label="Final page: 294 bits used and 706 bits unused"><span
+                                    class="used">294 bits<br>used</span><span class="unused">706 bits<br>unused</span>
+                            </div><small>Page 33 · Total capacity: 1,000 bits</small>
+                        </article>
+                        <article>
+                            <h3>Add bookkeeping</h3>
+                            <div class="eq">33 × 64 = 2,112 bits</div>
+                            <p>The records live separately. They need no additional pages or records.</p>
+                        </article>
+                        <article>
+                            <h3>Calculate the penalty</h3>
+                            <div class="eq">706 + 2,112 = 2,818 bits</div>
+                            <p>Penalty = unused space + bookkeeping.</p>
+                        </article>
+                    </div>
+                </div>
+                <p class="next"><strong>Next decision:</strong> code this same example in Rust and check that the answer
+                    is 2,818 bits.</p>
+            </section>
+            <section class="stage" id="rust">
+                <div class="eyebrow">Stage 02 · Check the implementation</div>
+                <h2>Make Rust reproduce the hand calculation.</h2>
+                <p>I first ran the starter “Hello, world!” program to confirm that the Rust project worked. Then I
+                    replaced it with the calculation for the same single request.</p>
+                <div class="grid">
+                    <div class="card">
+                        <h3>The calculation in code</h3>
+                        <pre><code>let data_bits: u64 = 32_294;
+let page_size: u64 = 1_000;
+let pages = data_bits.div_ceil(page_size);
+let unused = pages * page_size - data_bits;
+let bookkeeping = pages * 64;
+let penalty = unused + bookkeeping;</code></pre>
+                        <p><code>div_ceil</code> divides and rounds up. Integer arithmetic keeps these costs exact.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Expected and observed output matched</h3>
+                        <pre>Pages: 33
+Unused space: 706 bits
+Bookkeeping: 2112 bits
+Total penalty: 2818 bits</pre>
+                        <p>This agreement supports the calculation for this example. It is a useful check before reading
+                            the data, though it does not prove every part of the program is correct.</p>
+                    </div>
+                </div>
+                <details class="stage-code" id="code-version-1"><summary>Version 1 — Confirm Rust runs: Hello, world!</summary><p>The starter program checked that the project could compile and run before adding the memory calculations.</p><p><strong>File:</strong> <code>memory-pages/src/main.rs</code> · <strong>Run:</strong> <code>cargo run</code></p><pre><code class="language-rust">fn main() {
+   println!(&quot;Hello, world!&quot;);
+}
+</code></pre></details><details class="stage-code" id="code-version-2"><summary>Version 2 — Check the hand calculation for one program</summary><p>This is the complete version used to reproduce 33 pages, 706 unused bits, 2,112 bookkeeping bits, and a 2,818-bit penalty.</p><p><strong>File:</strong> <code>memory-pages/src/main.rs</code> · <strong>Run:</strong> <code>cargo run</code></p><pre><code class="language-rust">fn main() {
+   let data_bits: u64 = 32_294;
+   let page_size: u64 = 1_000;
+   // Round up: allocate enough whole pages.
+   let pages = data_bits.div_ceil(page_size);
+   let allocated_bits = pages * page_size;
+   let unused_bits = allocated_bits - data_bits;
+   let bookkeeping_bits = pages * 64;
+   let penalty = unused_bits + bookkeeping_bits;
+   println!(&quot;Pages: {pages}&quot;);
+   println!(&quot;Unused space: {unused_bits} bits&quot;);
+   println!(&quot;Bookkeeping: {bookkeeping_bits} bits&quot;);
+   println!(&quot;Total penalty: {penalty} bits&quot;);
+}
+</code></pre></details>
+                <p class="next"><strong>Next decision:</strong> keep the same formula, but read requests from a file
+                    instead of using one fixed number.</p>
+            </section>
+            <section class="stage" id="scale">
+                <div class="eyebrow">Stage 03 · Expand the workload</div>
+                <h2>One request → one day → all 32 days.</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>First, read one whole day</h3>
+                        <p>I read <code>../workloads/day_01/loads</code>, parsed one request per line, and repeated the
+                            calculation for every program using 1,000-bit pages.</p>
+                        <pre>Programs:        128
+Unused bits:    61,611
+Bookkeeping:    49,559,744
+Daily penalty:  49,621,355 bits</pre>
+                        <p>Counting 128 programs checked that I had read the expected number of requests. The two costs
+                            added to the printed daily penalty.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Then, repeat for every day</h3>
+                        <p>An outer loop visited folders <code>day_01</code> through <code>day_32</code>. Each day’s
+                            totals started at zero. The same page size applied throughout.</p>
+                        <pre>Total programs:       4,096
+Sum of penalties:     2,203,314,799 bits
+Average per day:      68,853,587.46875 bits</pre>
+                        <p>I divided the sum by 32, giving each day equal weight. I kept the fractional average instead
+                            of rounding it to a whole number.</p>
+                    </div>
+                </div>
+                <div class="reason"><strong>What I noticed:</strong> at 1,000 bits, day 1’s bookkeeping cost was much
+                    larger than its unused space. That gave a reason to try larger pages, which can reduce the number of
+                    records.</div>
+                <details class="stage-code" id="code-version-3"><summary>Version 3 — Read day 1 and total its program penalties</summary><p>This version reads every request in day_01/loads, counts the programs, and adds the two memory costs for 1,000-bit pages.</p><p><strong>File:</strong> <code>memory-pages/src/main.rs</code> · <strong>Run:</strong> <code>cargo run</code></p><pre><code class="language-rust">use std::fs;
+
+fn main() {
+   let page_size: u64 = 1_000;
+   // &quot;..&quot; goes up from memory-pages to its parent folder.
+   let contents = fs::read_to_string(&quot;../workloads/day_01/loads&quot;)
+       .expect(&quot;Could not read the day_01 loads file&quot;);
+   let mut program_count: u64 = 0;
+   let mut total_unused: u64 = 0;
+   let mut total_bookkeeping: u64 = 0;
+   for line in contents.lines() {
+       let data_bits: u64 = line.trim().parse()
+           .expect(&quot;Each line must contain a positive whole number&quot;);
+       assert!(data_bits &gt; 0, &quot;Memory requests must be positive&quot;);
+       let pages = data_bits.div_ceil(page_size);
+       let unused_bits = pages * page_size - data_bits;
+       let bookkeeping_bits = pages * 64;
+       program_count += 1;
+       total_unused += unused_bits;
+       total_bookkeeping += bookkeeping_bits;
+   }
+   let daily_penalty = total_unused + total_bookkeeping;
+   println!(&quot;Day: 01&quot;);
+   println!(&quot;Page size: {page_size} bits&quot;);
+   println!(&quot;Programs: {program_count}&quot;);
+   println!(&quot;Unused space: {total_unused} bits&quot;);
+   println!(&quot;Bookkeeping: {total_bookkeeping} bits&quot;);
+   println!(&quot;Daily penalty: {daily_penalty} bits&quot;);
+}
+</code></pre></details><details class="stage-code" id="code-version-4"><summary>Version 4 — Evaluate all 32 days with 1,000-bit pages</summary><p>The outer loop visits all 32 days. Each day starts with fresh totals, and the final average divides the sum of daily penalties by 32. This produced 68,853,587.46875 bits per day.</p><p><strong>File:</strong> <code>memory-pages/src/main.rs</code> · <strong>Run:</strong> <code>cargo run</code></p><pre><code class="language-rust">use std::fs;
+
+fn main() {
+   let page_size: u64 = 1_000;
+   let mut overall_penalty: u64 = 0;
+   let mut total_programs: u64 = 0;
+   for day in 1..=32 {
+       let path = format!(&quot;../workloads/day_{day:02}/loads&quot;);
+       let contents = fs::read_to_string(&amp;path)
+           .unwrap_or_else(|error| panic!(&quot;Could not read {path}: {error}&quot;));
+       let mut program_count: u64 = 0;
+       let mut total_unused: u64 = 0;
+       let mut total_bookkeeping: u64 = 0;
+       for line in contents.lines() {
+           let data_bits: u64 = line.trim().parse()
+               .expect(&quot;Each line must contain a positive whole number&quot;);
+           assert!(data_bits &gt; 0, &quot;Memory requests must be positive&quot;);
+           let pages = data_bits.div_ceil(page_size);
+           total_unused += pages * page_size - data_bits;
+           total_bookkeeping += pages * 64;
+           program_count += 1;
+       }
+       assert_eq!(program_count, 128, &quot;Expected 128 programs on day {day}&quot;);
+       let daily_penalty = total_unused + total_bookkeeping;
+       overall_penalty += daily_penalty;
+       total_programs += program_count;
+       println!(
+           &quot;Day {day:02}: programs={program_count}, \
+            bookkeeping={total_bookkeeping}, unused={total_unused}, \
+            penalty={daily_penalty} bits&quot;
+       );
+   }
+   let average_penalty = overall_penalty as f64 / 32.0;
+   println!(&quot;\nPage size: {page_size} bits&quot;);
+   println!(&quot;Total programs: {total_programs}&quot;);
+   println!(&quot;Sum of daily penalties: {overall_penalty} bits&quot;);
+   println!(&quot;Average daily penalty: {average_penalty:.5} bits&quot;);
+}
+</code></pre></details>
+<p class="next"><strong>Next decision:</strong> compare different page sizes using the same complete
+                    workload.</p>
+            </section>
+            <section class="stage" id="trials">
+                <div class="eyebrow">Stage 04 · Explore the trade-off</div>
+                <h2>Try a few sizes and follow the evidence.</h2>
+                <p>I changed the page-size value, saved the file, and reran the program. These tests were exploratory:
+                    they helped identify promising choices, but were not enough to prove an optimum.</p>
+                <div class="tablewrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order tested</th>
+                                <th>Page size (bits)</th>
+                                <th>Average daily penalty (bits)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>1,000</td>
+                                <td>68,853,587.46875</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>10,000</td>
+                                <td>7,533,242.96875</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>100,000</td>
+                                <td>9,282,668.96875</td>
+                            </tr>
+                            <tr class="best">
+                                <td>4</td>
+                                <td>30,000</td>
+                                <td>4,313,646.46875</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="grid" style="margin-top:24px">
+                    <div class="card">
+                        <h3>How the results changed the next test</h3>
+                        <p>10,000 bits improved substantially on 1,000. But increasing to 100,000 made the penalty rise.
+                            I then tested 30,000, between those two choices, and obtained the best result of the four
+                            trials.</p>
+                        <p>This showed why “make pages larger” was not a complete solution: fewer records can come with
+                            more unused space.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Comparison at a glance</h3>
+                        <p class="notice">Average daily penalty · millions of bits · bars start at zero</p>
+                        <div class="chart">
+                            <div class="chartrow"><span>1,000</span>
+                                <div class="track">
+                                    <div class="fill " style="width:100.0%"></div>
+                                </div><span>68.854 M</span>
+                            </div>
+                            <div class="chartrow"><span>10,000</span>
+                                <div class="track">
+                                    <div class="fill " style="width:10.940959281415873%"></div>
+                                </div><span>7.533 M</span>
+                            </div>
+                            <div class="chartrow"><span>100,000</span>
+                                <div class="track">
+                                    <div class="fill " style="width:13.481750639301179%"></div>
+                                </div><span>9.283 M</span>
+                            </div>
+                            <div class="chartrow"><span>30,000</span>
+                                <div class="track">
+                                    <div class="fill " style="width:6.264955287489991%"></div>
+                                </div><span>4.314 M</span>
+                            </div>
+                            <div class="chartrow"><span>32,768</span>
+                                <div class="track">
+                                    <div class="fill win" style="width:4.6087576340016225%"></div>
+                                </div><span>3.173 M</span>
+                            </div>
+                        </div>
+                        <p class="notice" style="margin-top:15px">The final row is the later search result, included for
+                            comparison.</p>
+                    </div>
+                </div>
+                <details>
+                    <summary>A practical difficulty I encountered</summary>
+                    <p>At one point, the output still showed 1,000-bit pages after I intended to change the size. I had
+                        forgotten to save the file. Saving in VS Code and running again produced the 10,000-bit result.
+                    </p>
+                    <p>This made the printed page-size label useful: it showed which setting the executable had actually
+                        used. I kept that label when comparing results.</p>
+                </details>
+                <p class="notice">The following trials used the same complete all-days program as Version 4. Only the page-size setting changed. Each expandable section includes the full source so the trial can be reproduced independently.</p><details class="stage-code" id="code-version-5"><summary>Version 5 — Trial 1: rerun all days with 10,000-bit pages</summary><p>Changed the page-size setting to 10_000. The average daily penalty was 7,533,242.96875 bits.</p><p><strong>File:</strong> <code>memory-pages/src/main.rs</code> · <strong>Run:</strong> <code>cargo run</code></p><pre><code class="language-rust">use std::fs;
+
+fn main() {
+   let page_size: u64 = 10_000;
+   let mut overall_penalty: u64 = 0;
+   let mut total_programs: u64 = 0;
+   for day in 1..=32 {
+       let path = format!(&quot;../workloads/day_{day:02}/loads&quot;);
+       let contents = fs::read_to_string(&amp;path)
+           .unwrap_or_else(|error| panic!(&quot;Could not read {path}: {error}&quot;));
+       let mut program_count: u64 = 0;
+       let mut total_unused: u64 = 0;
+       let mut total_bookkeeping: u64 = 0;
+       for line in contents.lines() {
+           let data_bits: u64 = line.trim().parse()
+               .expect(&quot;Each line must contain a positive whole number&quot;);
+           assert!(data_bits &gt; 0, &quot;Memory requests must be positive&quot;);
+           let pages = data_bits.div_ceil(page_size);
+           total_unused += pages * page_size - data_bits;
+           total_bookkeeping += pages * 64;
+           program_count += 1;
+       }
+       assert_eq!(program_count, 128, &quot;Expected 128 programs on day {day}&quot;);
+       let daily_penalty = total_unused + total_bookkeeping;
+       overall_penalty += daily_penalty;
+       total_programs += program_count;
+       println!(
+           &quot;Day {day:02}: programs={program_count}, \
+            bookkeeping={total_bookkeeping}, unused={total_unused}, \
+            penalty={daily_penalty} bits&quot;
+       );
+   }
+   let average_penalty = overall_penalty as f64 / 32.0;
+   println!(&quot;\nPage size: {page_size} bits&quot;);
+   println!(&quot;Total programs: {total_programs}&quot;);
+   println!(&quot;Sum of daily penalties: {overall_penalty} bits&quot;);
+   println!(&quot;Average daily penalty: {average_penalty:.5} bits&quot;);
+}
+</code></pre></details><details class="stage-code" id="code-version-6"><summary>Version 6 — Trial 2: rerun all days with 100,000-bit pages</summary><p>Changed the page-size setting to 100_000. The average daily penalty rose to 9,282,668.96875 bits.</p><p><strong>File:</strong> <code>memory-pages/src/main.rs</code> · <strong>Run:</strong> <code>cargo run</code></p><pre><code class="language-rust">use std::fs;
+
+fn main() {
+   let page_size: u64 = 100_000;
+   let mut overall_penalty: u64 = 0;
+   let mut total_programs: u64 = 0;
+   for day in 1..=32 {
+       let path = format!(&quot;../workloads/day_{day:02}/loads&quot;);
+       let contents = fs::read_to_string(&amp;path)
+           .unwrap_or_else(|error| panic!(&quot;Could not read {path}: {error}&quot;));
+       let mut program_count: u64 = 0;
+       let mut total_unused: u64 = 0;
+       let mut total_bookkeeping: u64 = 0;
+       for line in contents.lines() {
+           let data_bits: u64 = line.trim().parse()
+               .expect(&quot;Each line must contain a positive whole number&quot;);
+           assert!(data_bits &gt; 0, &quot;Memory requests must be positive&quot;);
+           let pages = data_bits.div_ceil(page_size);
+           total_unused += pages * page_size - data_bits;
+           total_bookkeeping += pages * 64;
+           program_count += 1;
+       }
+       assert_eq!(program_count, 128, &quot;Expected 128 programs on day {day}&quot;);
+       let daily_penalty = total_unused + total_bookkeeping;
+       overall_penalty += daily_penalty;
+       total_programs += program_count;
+       println!(
+           &quot;Day {day:02}: programs={program_count}, \
+            bookkeeping={total_bookkeeping}, unused={total_unused}, \
+            penalty={daily_penalty} bits&quot;
+       );
+   }
+   let average_penalty = overall_penalty as f64 / 32.0;
+   println!(&quot;\nPage size: {page_size} bits&quot;);
+   println!(&quot;Total programs: {total_programs}&quot;);
+   println!(&quot;Sum of daily penalties: {overall_penalty} bits&quot;);
+   println!(&quot;Average daily penalty: {average_penalty:.5} bits&quot;);
+}
+</code></pre></details><details class="stage-code" id="code-version-7"><summary>Version 7 — Trial 3: rerun all days with 30,000-bit pages</summary><p>Changed the page-size setting to 30_000. The average daily penalty fell to 4,313,646.46875 bits.</p><p><strong>File:</strong> <code>memory-pages/src/main.rs</code> · <strong>Run:</strong> <code>cargo run</code></p><pre><code class="language-rust">use std::fs;
+
+fn main() {
+   let page_size: u64 = 30_000;
+   let mut overall_penalty: u64 = 0;
+   let mut total_programs: u64 = 0;
+   for day in 1..=32 {
+       let path = format!(&quot;../workloads/day_{day:02}/loads&quot;);
+       let contents = fs::read_to_string(&amp;path)
+           .unwrap_or_else(|error| panic!(&quot;Could not read {path}: {error}&quot;));
+       let mut program_count: u64 = 0;
+       let mut total_unused: u64 = 0;
+       let mut total_bookkeeping: u64 = 0;
+       for line in contents.lines() {
+           let data_bits: u64 = line.trim().parse()
+               .expect(&quot;Each line must contain a positive whole number&quot;);
+           assert!(data_bits &gt; 0, &quot;Memory requests must be positive&quot;);
+           let pages = data_bits.div_ceil(page_size);
+           total_unused += pages * page_size - data_bits;
+           total_bookkeeping += pages * 64;
+           program_count += 1;
+       }
+       assert_eq!(program_count, 128, &quot;Expected 128 programs on day {day}&quot;);
+       let daily_penalty = total_unused + total_bookkeeping;
+       overall_penalty += daily_penalty;
+       total_programs += program_count;
+       println!(
+           &quot;Day {day:02}: programs={program_count}, \
+            bookkeeping={total_bookkeeping}, unused={total_unused}, \
+            penalty={daily_penalty} bits&quot;
+       );
+   }
+   let average_penalty = overall_penalty as f64 / 32.0;
+   println!(&quot;\nPage size: {page_size} bits&quot;);
+   println!(&quot;Total programs: {total_programs}&quot;);
+   println!(&quot;Sum of daily penalties: {overall_penalty} bits&quot;);
+   println!(&quot;Average daily penalty: {average_penalty:.5} bits&quot;);
+}
+</code></pre></details>
+<p class="next"><strong>Next question:</strong> was there a better size between the values I happened to
+                    try? Testing only a few sizes could miss it.</p>
+            </section>
+            <section class="stage" id="search">
+                <div class="eyebrow">Stage 05 · Replace guessing with a systematic search</div>
+                <h2>Test every integer from 1 to 100,000.</h2>
+                <p>I read all 4,096 requests once, then looped through every whole-number page size in the range. For
+                    each size, I added the same program penalties across all requests.</p>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Keep comparisons exact</h3>
+                        <p>I compared integer totals, not rounded averages. Every total is divided by the same 32, so
+                            minimizing the total also minimizes the average daily score.</p>
+                        <p>The code kept a list of equally good sizes. A new lower total cleared the list; an equal
+                            total added another size.</p>
+                        <p>I used <code>cargo run --release</code> to run an optimized build for the larger search.</p>
+                    </div>
+                    <div class="highlight">
+                        <h3>Best size inside the searched range</h3>
+                        <div class="big">32,768 bits</div>
+                        <p>Sum of daily penalties<br><strong>101,545,439 bits</strong></p>
+                        <p>Average daily penalty<br><strong>3,173,294.96875 bits</strong></p>
+                        <p>Only one size achieved the minimum in this range.</p>
+                    </div>
+                </div>
+                <div class="reason"><strong>The limit of this result:</strong> the initial 100,000-bit cutoff was an
+                    exploratory boundary. Searching that range alone did not justify claiming the best size among all
+                    positive integers.</div>
+                <details class="stage-code" id="code-version-8"><summary>Version 8 — Search every integer page size from 1 to 100,000</summary><p>This is the search version used to find [32768]. It reads the workload once, compares exact integer totals, and retains all sizes tied for the minimum.</p><p><strong>File:</strong> <code>memory-pages/src/main.rs</code> · <strong>Run:</strong> <code>cargo run --release</code></p><pre><code class="language-rust">use std::fs;
+
+fn main() {
+   // Read the data once, before testing page sizes.
+   let mut requests: Vec&lt;u64&gt; = Vec::new();
+   for day in 1..=32 {
+       let path = format!(&quot;../workloads/day_{day:02}/loads&quot;);
+       let contents = fs::read_to_string(&amp;path)
+           .unwrap_or_else(|error| panic!(&quot;Could not read {path}: {error}&quot;));
+       let mut count = 0;
+       for line in contents.lines() {
+           let bits: u64 = line.trim().parse()
+               .expect(&quot;Expected a positive whole number&quot;);
+           assert!(bits &gt; 0);
+           requests.push(bits);
+           count += 1;
+       }
+       assert_eq!(count, 128, &quot;Expected 128 programs on day {day}&quot;);
+   }
+   let mut best_total = u64::MAX;
+   let mut best_sizes = Vec::new();
+   // Test every integer size in this range.
+   for page_size in 1_u64..=100_000 {
+       let mut total_penalty: u64 = 0;
+       for &amp;bits in &amp;requests {
+           let pages = bits.div_ceil(page_size);
+           let unused = pages * page_size - bits;
+           total_penalty += unused + pages * 64;
+       }
+       if total_penalty &lt; best_total {
+           best_total = total_penalty;
+           best_sizes.clear();
+           best_sizes.push(page_size);
+       } else if total_penalty == best_total {
+           best_sizes.push(page_size);
+       }
+   }
+   println!(&quot;Search range: 1 to 100000 bits, inclusive&quot;);
+   println!(&quot;Total programs: {}&quot;, requests.len());
+   println!(&quot;Best page sizes in this range: {best_sizes:?} bits&quot;);
+   println!(&quot;Sum of daily penalties: {best_total} bits&quot;);
+   println!(
+       &quot;Average daily penalty: {:.5} bits&quot;,
+       best_total as f64 / 32.0
+   );
+}
+</code></pre></details>
+<p class="next"><strong>Next decision:</strong> find a lower bound for every size above 100,000, rather
+                    than choosing another arbitrary stopping point.</p>
+            </section>
+            <section class="stage" id="proof">
+                <div class="eyebrow">Stage 06 · Resolve the search limit</div>
+                <h2>Could an even larger size win?</h2>
+                <p>For any page size above 100,000 bits, the smallest possible size is 100,001. Every program needs at
+                    least one page and therefore at least one 64-bit record.</p>
+                <div class="card">
+                    <h3>A deliberately generous minimum cost</h3>
+                    <p>If a request needs fewer than 100,001 bits, its page must leave at least
+                        <code>100001 − requested_bits</code> unused bits. For a larger request, I use zero as a safe
+                        lower bound on unused space. I count just one record per program, even if it would actually
+                        require more.</p>
+                    <div class="eq">Minimum per program = max(100,001 − request, 0) + 64</div>
+                    <p>For example, a 1,000-bit request must waste at least 99,001 bits at these larger sizes, plus at
+                        least 64 bits of bookkeeping. Adding the lower bounds for all requests gives:</p>
+                    <pre>Lower bound above 100000 bits: 172260831
+Best tested total:             101545439</pre>
+                    <p><strong>172,260,831 &gt; 101,545,439.</strong> Even this underestimate is worse than the best
+                        tested total. The actual total for any larger size must be at least as high as the bound, so
+                        every size above 100,000 is ruled out.</p>
+                </div>
+                <div class="reason"><strong>Conclusion:</strong> the search tested every positive integer up to 100,000
+                    and found a unique minimum at 32,768. The bound rules out every larger integer. Together, they
+                    establish <strong>32,768 bits as the unique optimal page size for these workloads and this memory
+                        model.</strong></div>
+                <details class="stage-code" id="code-version-9"><summary>Version 9 — Add the lower bound and rule out larger page sizes</summary><p>This version adds the lower-bound calculation to Version 8. It produced the 172,260,831-bit bound and the 101,545,439-bit best tested total shown above.</p><p><strong>File:</strong> <code>memory-pages/src/main.rs</code> · <strong>Run:</strong> <code>cargo run --release</code></p><pre><code class="language-rust">use std::fs;
+
+fn main() {
+   // Read the data once, before testing page sizes.
+   let mut requests: Vec&lt;u64&gt; = Vec::new();
+   for day in 1..=32 {
+       let path = format!(&quot;../workloads/day_{day:02}/loads&quot;);
+       let contents = fs::read_to_string(&amp;path)
+           .unwrap_or_else(|error| panic!(&quot;Could not read {path}: {error}&quot;));
+       let mut count = 0;
+       for line in contents.lines() {
+           let bits: u64 = line.trim().parse()
+               .expect(&quot;Expected a positive whole number&quot;);
+           assert!(bits &gt; 0);
+           requests.push(bits);
+           count += 1;
+       }
+       assert_eq!(count, 128, &quot;Expected 128 programs on day {day}&quot;);
+   }
+   let mut best_total = u64::MAX;
+   let mut best_sizes = Vec::new();
+   // Test every integer size in this range.
+   for page_size in 1_u64..=100_000 {
+       let mut total_penalty: u64 = 0;
+       for &amp;bits in &amp;requests {
+           let pages = bits.div_ceil(page_size);
+           let unused = pages * page_size - bits;
+           total_penalty += unused + pages * 64;
+       }
+       if total_penalty &lt; best_total {
+           best_total = total_penalty;
+           best_sizes.clear();
+           best_sizes.push(page_size);
+       } else if total_penalty == best_total {
+           best_sizes.push(page_size);
+       }
+   }
+   // Minimum possible penalty for any page size above 100,000.
+   let lower_bound: u64 = requests.iter()
+       .map(|&amp;bits| 100_001_u64.saturating_sub(bits) + 64)
+       .sum();
+   println!(&quot;Lower bound above 100000 bits: {lower_bound}&quot;);
+   println!(&quot;Best tested total: {best_total}&quot;);
+   println!(&quot;Search range: 1 to 100000 bits, inclusive&quot;);
+   println!(&quot;Total programs: {}&quot;, requests.len());
+   println!(&quot;Best page sizes in this range: {best_sizes:?} bits&quot;);
+   println!(&quot;Sum of daily penalties: {best_total} bits&quot;);
+   println!(
+       &quot;Average daily penalty: {:.5} bits&quot;,
+       best_total as f64 / 32.0
+   );
+}
+</code></pre></details>
+<p class="next"><strong>What changed in the reasoning:</strong> “best among the sizes tested” became
+                    “best overall” only after the unsearched sizes were ruled out.</p>
+            </section>
+            <section class="stage" id="report">
+                <div class="eyebrow">Stage 07 · Make the result inspectable</div>
+                <h2>Daily costs at the winning size.</h2>
+                <p>This report uses <strong>32,768-bit pages</strong> for every program on every day. Each penalty is
+                    bookkeeping plus unused space. These daily values were calculated from the assignment’s attached
+                    workload data; their sum agrees with the search output.</p>
+                <div class="tablewrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Programs</th>
+                                <th>Bookkeeping bits</th>
+                                <th>Unused bits</th>
+                                <th>Penalty bits</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>01</td>
+                                <td>128</td>
+                                <td>1,514,880</td>
+                                <td>1,309,171</td>
+                                <td>2,824,051</td>
+                            </tr>
+                            <tr>
+                                <td>02</td>
+                                <td>128</td>
+                                <td>1,019,648</td>
+                                <td>1,699,709</td>
+                                <td>2,719,357</td>
+                            </tr>
+                            <tr>
+                                <td>03</td>
+                                <td>128</td>
+                                <td>2,335,104</td>
+                                <td>962,319</td>
+                                <td>3,297,423</td>
+                            </tr>
+                            <tr>
+                                <td>04</td>
+                                <td>128</td>
+                                <td>2,589,952</td>
+                                <td>980,780</td>
+                                <td>3,570,732</td>
+                            </tr>
+                            <tr>
+                                <td>05</td>
+                                <td>128</td>
+                                <td>2,873,856</td>
+                                <td>700,609</td>
+                                <td>3,574,465</td>
+                            </tr>
+                            <tr>
+                                <td>06</td>
+                                <td>128</td>
+                                <td>3,182,848</td>
+                                <td>442,631</td>
+                                <td>3,625,479</td>
+                            </tr>
+                            <tr>
+                                <td>07</td>
+                                <td>128</td>
+                                <td>1,526,144</td>
+                                <td>1,374,477</td>
+                                <td>2,900,621</td>
+                            </tr>
+                            <tr>
+                                <td>08</td>
+                                <td>128</td>
+                                <td>2,778,880</td>
+                                <td>585,295</td>
+                                <td>3,364,175</td>
+                            </tr>
+                            <tr>
+                                <td>09</td>
+                                <td>128</td>
+                                <td>1,088,384</td>
+                                <td>1,638,809</td>
+                                <td>2,727,193</td>
+                            </tr>
+                            <tr>
+                                <td>10</td>
+                                <td>128</td>
+                                <td>3,114,112</td>
+                                <td>556,541</td>
+                                <td>3,670,653</td>
+                            </tr>
+                            <tr>
+                                <td>11</td>
+                                <td>128</td>
+                                <td>1,614,464</td>
+                                <td>1,439,809</td>
+                                <td>3,054,273</td>
+                            </tr>
+                            <tr>
+                                <td>12</td>
+                                <td>128</td>
+                                <td>3,206,400</td>
+                                <td>458,320</td>
+                                <td>3,664,720</td>
+                            </tr>
+                            <tr>
+                                <td>13</td>
+                                <td>128</td>
+                                <td>2,364,544</td>
+                                <td>996,211</td>
+                                <td>3,360,755</td>
+                            </tr>
+                            <tr>
+                                <td>14</td>
+                                <td>128</td>
+                                <td>1,328,640</td>
+                                <td>1,605,452</td>
+                                <td>2,934,092</td>
+                            </tr>
+                            <tr>
+                                <td>15</td>
+                                <td>128</td>
+                                <td>2,687,616</td>
+                                <td>862,529</td>
+                                <td>3,550,145</td>
+                            </tr>
+                            <tr>
+                                <td>16</td>
+                                <td>128</td>
+                                <td>2,321,536</td>
+                                <td>959,866</td>
+                                <td>3,281,402</td>
+                            </tr>
+                            <tr>
+                                <td>17</td>
+                                <td>128</td>
+                                <td>1,837,952</td>
+                                <td>1,270,924</td>
+                                <td>3,108,876</td>
+                            </tr>
+                            <tr>
+                                <td>18</td>
+                                <td>128</td>
+                                <td>2,676,352</td>
+                                <td>733,318</td>
+                                <td>3,409,670</td>
+                            </tr>
+                            <tr>
+                                <td>19</td>
+                                <td>128</td>
+                                <td>1,612,544</td>
+                                <td>1,309,641</td>
+                                <td>2,922,185</td>
+                            </tr>
+                            <tr>
+                                <td>20</td>
+                                <td>128</td>
+                                <td>2,829,952</td>
+                                <td>652,473</td>
+                                <td>3,482,425</td>
+                            </tr>
+                            <tr>
+                                <td>21</td>
+                                <td>128</td>
+                                <td>2,804,864</td>
+                                <td>606,141</td>
+                                <td>3,411,005</td>
+                            </tr>
+                            <tr>
+                                <td>22</td>
+                                <td>128</td>
+                                <td>1,884,288</td>
+                                <td>1,218,453</td>
+                                <td>3,102,741</td>
+                            </tr>
+                            <tr>
+                                <td>23</td>
+                                <td>128</td>
+                                <td>1,397,632</td>
+                                <td>1,436,385</td>
+                                <td>2,834,017</td>
+                            </tr>
+                            <tr>
+                                <td>24</td>
+                                <td>128</td>
+                                <td>1,423,616</td>
+                                <td>1,455,310</td>
+                                <td>2,878,926</td>
+                            </tr>
+                            <tr>
+                                <td>25</td>
+                                <td>128</td>
+                                <td>1,372,544</td>
+                                <td>1,291,025</td>
+                                <td>2,663,569</td>
+                            </tr>
+                            <tr>
+                                <td>26</td>
+                                <td>128</td>
+                                <td>3,134,592</td>
+                                <td>505,767</td>
+                                <td>3,640,359</td>
+                            </tr>
+                            <tr>
+                                <td>27</td>
+                                <td>128</td>
+                                <td>1,867,392</td>
+                                <td>1,051,490</td>
+                                <td>2,918,882</td>
+                            </tr>
+                            <tr>
+                                <td>28</td>
+                                <td>128</td>
+                                <td>2,318,208</td>
+                                <td>949,937</td>
+                                <td>3,268,145</td>
+                            </tr>
+                            <tr>
+                                <td>29</td>
+                                <td>128</td>
+                                <td>996,096</td>
+                                <td>1,661,437</td>
+                                <td>2,657,533</td>
+                            </tr>
+                            <tr>
+                                <td>30</td>
+                                <td>128</td>
+                                <td>2,588,032</td>
+                                <td>845,963</td>
+                                <td>3,433,995</td>
+                            </tr>
+                            <tr>
+                                <td>31</td>
+                                <td>128</td>
+                                <td>1,880,960</td>
+                                <td>1,209,881</td>
+                                <td>3,090,841</td>
+                            </tr>
+                            <tr>
+                                <td>32</td>
+                                <td>128</td>
+                                <td>1,067,904</td>
+                                <td>1,534,830</td>
+                                <td>2,602,734</td>
+                            </tr>
+                            <tr class="best">
+                                <td>Total</td>
+                                <td>4,096</td>
+                                <td>67,239,936</td>
+                                <td>34,305,503</td>
+                                <td>101,545,439</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p style="margin-top:18px"><strong>Overall average:</strong> 101,545,439 ÷ 32 = <strong>3,173,294.96875
+                        bits per day.</strong></p>
+                <div class="interactive">
+                    <h3>Explore the calculation for one request</h3>
+                    <p>Keep the original 32,294-bit request and change the page size below. This is a teaching
+                        calculator for one request, separate from the full-workload search.</p><label for="size">Page
+                        size in bits</label><input id="size" type="number" min="1" max="1000000000" step="1"
+                        value="1000">
+                    <div class="outputs" id="outputs" aria-live="polite"></div>
+                    <p class="notice" id="calc-note"></p>
+                </div>
+            <details><summary>Source for this daily report — final combined reporting version</summary><p>The historical search-only program above did not print daily costs at the winning size. The final combined program retains each day separately and prints this report after finding the best size. It is provided in the next section and identified as a later reporting addition.</p><p><a href="#code">View and download the complete combined reporting source →</a></p></details>
+</section>
+            <section class="stage" id="code">
+                <div class="eyebrow">Stage 08 · Reproduce the result</div>
+                <h2>The Rust source and how to run it.</h2>
+                <p>The combined version below retains the search and proof calculation, and adds the daily report at the
+                    winning size. The daily-report addition is a final reporting improvement beyond the search-only
+                    version used during the exploration.</p>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Expected folder arrangement</h3>
+                        <pre>page-size-workloads/
+├── workloads/
+│   ├── day_01/loads
+│   ├── day_02/loads
+│   └── … through day_32/loads
+└── memory-pages/
+    ├── Cargo.toml
+    └── src/main.rs</pre>
+                        <p>Put the source into <code>memory-pages/src/main.rs</code>. The relative file paths assume you
+                            run Cargo from inside <code>memory-pages</code>.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Run from the project terminal</h3>
+                        <pre>cargo run --release</pre>
+                        <p>Save <code>main.rs</code> before running it. The program reads the 32 day folders, searches
+                            sizes 1–100,000, computes the lower bound, and prints the daily report.</p>
+                        <p class="notice">The source uses <code>u64::div_ceil</code>to round up the number of pages. This method was supported by the Rust toolchain used for this investigation.</p>
+                    </div>
+                </div>
+                <div class="tools"><button id="download-code">Download main.rs</button><button id="copy-code">Copy Rust
+                        source</button><span id="copy-status" role="status"></span></div>
+                <details>
+                    <summary>Final reporting version — search, lower-bound check, and daily costs at the winning size</summary>
+                    <pre><code id="rust-source">use std::fs;
+
+fn main() {
+    let mut days: Vec&lt;Vec&lt;u64&gt;&gt; = Vec::new();
+    for day in 1..=32 {
+        let path = format!(&quot;../workloads/day_{day:02}/loads&quot;);
+        let contents = fs::read_to_string(&amp;path)
+            .unwrap_or_else(|e| panic!(&quot;Could not read {path}: {e}&quot;));
+        let requests: Vec&lt;u64&gt; = contents.lines().map(|line| {
+            let bits: u64 = line.trim().parse().expect(&quot;Expected a whole number&quot;);
+            assert!(bits &gt; 0);
+            bits
+        }).collect();
+        assert_eq!(requests.len(), 128, &quot;Expected 128 programs on day {day}&quot;);
+        days.push(requests);
+    }
+
+    let mut best_total = u64::MAX;
+    let mut best_sizes = Vec::new();
+    for page_size in 1_u64..=100_000 {
+        let total: u64 = days.iter().flatten().map(|&amp;bits| {
+            let pages = bits.div_ceil(page_size);
+            pages * page_size - bits + pages * 64
+        }).sum();
+        if total &lt; best_total {
+            best_total = total;
+            best_sizes.clear();
+            best_sizes.push(page_size);
+        } else if total == best_total {
+            best_sizes.push(page_size);
+        }
+    }
+
+    let lower_bound: u64 = days.iter().flatten()
+        .map(|&amp;bits| 100_001_u64.saturating_sub(bits) + 64).sum();
+    println!(&quot;Best page sizes: {best_sizes:?} bits&quot;);
+    println!(&quot;Total penalty: {best_total} bits&quot;);
+    println!(&quot;Average daily penalty: {:.5} bits&quot;, best_total as f64 / 32.0);
+    println!(&quot;Lower bound above 100000 bits: {lower_bound}&quot;);
+    assert!(lower_bound &gt; best_total);
+
+    // Report each winning size; retain all ties if there are any.
+    for page_size in best_sizes {
+        println!(&quot;\nDaily report for {page_size}-bit pages:&quot;);
+        println!(&quot;day,programs,bookkeeping_bits,unused_bits,penalty_bits&quot;);
+        for (index, requests) in days.iter().enumerate() {
+            let mut bookkeeping = 0_u64;
+            let mut unused = 0_u64;
+            for &amp;bits in requests {
+                let pages = bits.div_ceil(page_size);
+                bookkeeping += pages * 64;
+                unused += pages * page_size - bits;
+            }
+            println!(&quot;{:02},{},{},{},{}&quot;, index + 1, requests.len(),
+                bookkeeping, unused, bookkeeping + unused);
+        }
+    }
+}
+</code></pre>
+                </details>
+                <div class="reason"><strong>Checks and limits:</strong> the original single-request Rust run matched the
+                    hand calculation; the observed full search reported the minimum and bound shown here. The daily
+                    table was independently recalculated from the supplied files. The newly combined reporting source
+                    has not been compiled in this workspace; run it with your local Rust setup to confirm its printed
+                    report.</div>
+            </section>
+        </main>
+    </div>
+    <script>
+        const sizeInput = document.getElementById('size');
+        function calculate() { const p = Number(sizeInput.value); const out = document.getElementById('outputs'); if (!Number.isSafeInteger(p) || p < 1 || p > 1000000000) { out.textContent = 'Enter a whole-number size from 1 to 1,000,000,000 bits.'; document.getElementById('calc-note').textContent = ''; return; } const pages = Math.ceil(32294 / p), unused = pages * p - 32294, book = pages * 64; out.innerHTML = `<div>Whole pages<strong>${pages.toLocaleString()}</strong></div><div>Unused / bookkeeping<strong>${unused.toLocaleString()} / ${book.toLocaleString()}</strong></div><div>Penalty in bits<strong>${(unused + book).toLocaleString()}</strong></div>`; document.getElementById('calc-note').textContent = 'Penalty = unused bits + 64 × allocated pages. This result is for one program only.'; }
+        sizeInput.addEventListener('input', calculate); calculate();
+        const source = document.getElementById('rust-source').textContent;
+        document.getElementById('download-code').addEventListener('click', () => { const u = URL.createObjectURL(new Blob([source], { type: 'text/plain' })); const a = document.createElement('a'); a.href = u; a.download = 'main.rs'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); });
+        document.getElementById('copy-code').addEventListener('click', async () => { try { await navigator.clipboard.writeText(source); document.getElementById('copy-status').textContent = 'Copied.'; } catch (e) { document.getElementById('copy-status').textContent = 'Open the code section and select the text, or use Download main.rs.'; } });
+    </script>
+</body>
+
+</html>
